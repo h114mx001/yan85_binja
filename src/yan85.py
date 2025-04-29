@@ -19,7 +19,7 @@ class Yan85(Architecture):
         "i": RegisterInfo("i", 1),
         "f": RegisterInfo("f", 1),
     }
-    stack_pointer = "S"  # Stack pointer register
+    stack_pointer = "s"  # Stack pointer register
     
     def get_instruction_info(self, data, addr):
         
@@ -28,6 +28,9 @@ class Yan85(Architecture):
         return result 
     
     def get_instruction_text(self, data, addr):
+        """ 
+        parse the instruction insn. Assuming that it is well-formed
+        """
         global YAN85_DISASS
         (op, arg1, arg2) = YAN85_DISASS.disass(data[addr:addr+3])
         
@@ -36,10 +39,52 @@ class Yan85(Architecture):
         # the first token is the operation 
         result.append(InstructionTextToken(InstructionTextTokenType.InstructionToken, op))
         
-        # from now, depend on the op, we have to add different arguments
+        # for the next two arguments, actually yan85 is not that tricky. 
         
-          
-        
+        if op == "imm":
+            # register 
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg1))
+            # int byte
+            result.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, arg2))
+        elif op == "add":
+            # register 1
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg1))
+            # register 2
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))
+        elif op == "stk":
+            if arg1 == 0:
+                # stk 0 A -> push a
+                result.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, "0"))
+                result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))
+                result.append(InstructionTextToken(InstructionTextTokenType.CommentToken, "push " + arg2))
+            else:
+                # stk A 0 -> pop a
+                result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg1))
+                result.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, "0"))
+                result.append(InstructionTextToken(InstructionTextTokenType.CommentToken, "pop " + arg1))
+        elif op == "stm":
+            # stm [A] B 
+            result.append(InstructionTextTokenType.BeginMemoryOperandToken, "[")
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg1))
+            result.append(InstructionTextTokenType.EndMemoryOperandToken, "]")
+            
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))        
       
-    
-    
+        elif op == "ldm":
+            result.append(InstructionTextTokenType.RegisterToken, arg1)
+            result.append(InstructionTextTokenType.BeginMemoryOperandToken, "[")
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))
+            result.append(InstructionTextTokenType.EndMemoryOperandToken, "]")
+            
+        elif op == "cmp":
+            # cmp A B
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg1))
+            result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))
+        elif op == "jmp":            
+            if arg1 == 0:
+                # jmp 0 A -> jmp a
+                result.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, "0"))
+                result.append(InstructionTextToken(InstructionTextTokenType.RegisterToken, arg2))
+            else: 
+                
+            

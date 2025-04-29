@@ -13,9 +13,6 @@ class Yan85Disassembler:
         self.syscalls = vars(self.config.syscall_table)
         self.jmp_ops = vars(self.config.flags)
         
-    # def chunkstring(self, string, length):
-    #     return list(string[0+i:length+i] for i in range(0, len(string), length))
-
     def regs(self, val):
         for k, v in self.registers.items():
             if v == val:
@@ -36,20 +33,20 @@ class Yan85Disassembler:
     def stk(self, arg1, arg2):
         op = 'stk'
         for k, v in self.registers.items():
-            if arg2 != 0: # stk 0 A -> push a
+            if arg2 != 0: 
                 if arg2 == v:
                     arg2 = k
-                    return op, arg1, arg2
-            else: # stk A 0 -> pop a
+                
+            if arg1 != 0: 
                 if arg1 == v:
                     arg1 = k
-                    return op, arg1, arg2
-
+        return op, arg1, arg2
+    
     def stm(self, arg1, arg2):
         op = 'stm'
         arg1 = self.regs(arg1)
         arg2 = self.regs(arg2)
-        return op, arg1, arg2
+        return op, "*" + arg1, arg2
 
     def ldm(self, arg1, arg2):
         op = 'ldm'
@@ -57,13 +54,16 @@ class Yan85Disassembler:
         arg2 = self.regs(arg2)
         return op, arg1, arg2
 
-    def jmp(self, arg1, arg2):
+    def jmp(self, arg1, arg2):    
+        flags = ""
         for k, v in self.jmp_ops.items():
-            if v == arg1:
-                arg1 = k
+            if arg1 & v == v:
+                flags += k
+        if flags == "":
+            flags = 0
         op = 'jmp'
         arg2 = self.regs(arg2)
-        return op, arg1, arg2
+        return op, flags, arg2
             
     def syscall(self, arg1, arg2):
         for k, v in self.syscalls.items():
@@ -71,6 +71,8 @@ class Yan85Disassembler:
                 arg1 = hex(v)
         op = 'sys'
         arg2 = self.regs(arg2)
+        if arg2 == None:
+            arg2 = 0
         return op, arg1, arg2
 
     def disass(self, opcode):
@@ -95,21 +97,3 @@ class Yan85Disassembler:
                         return self.jmp(arg1, arg2)
                     elif k == 'sys':
                         return self.syscall(arg1, arg2)
-
-    # def process_instructions(self, opcode_bytes):
-    #     instructions = self.chunkstring(opcode_bytes, 3)
-    #     print("[+] Length of Instructions: "+str(len(instructions)))
-    #     for instruction in instructions:
-    #         op, arg1, arg2 = self.disass(instruction)
-
-    #         if op == 'stk':
-    #             if arg1 == 0:
-    #                 print(op.upper(), arg1, arg2, '\t\t\t# push')
-    #             elif arg2 == 0:
-    #                 print(op.upper(), arg1, arg2, '\t\t\t# pop')
-    #         elif op == "stm":
-    #             print(op.upper(), "*"+arg1, arg2)
-    #         elif op == "ldm":
-    #             print(op.upper(), arg1, "*"+arg2)
-    #         else:
-    #             print(op.upper(), arg1, arg2)
